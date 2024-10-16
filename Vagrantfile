@@ -50,7 +50,7 @@ Vagrant.configure("2") do |config|
 
   # Provision with Ansible to run the playbook
   config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "playbook/site.yml"
+    ansible.playbook = "playbooks/site.yml"
     ansible.inventory_path = "inventory.conf"
     ansible.limit = "all"
   end
