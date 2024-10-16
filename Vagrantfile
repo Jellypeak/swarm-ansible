@@ -10,8 +10,7 @@ def provision(vm, role, node_num)
   vm.hostname = role
 
   node_ip = "#{NETWORK_PREFIX}.#{100+node_num}"
-  vm.network "private_network", ip: node_ip, netmask: "255.255.255.0"
-
+  vm.network "private_network"
   vm.provision "ansible", run: 'once' do |ansible|
     ansible.compatibility_mode = "2.0"
     ansible.playbook = "playbooks/site.yml"
