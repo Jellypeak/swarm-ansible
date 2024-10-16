@@ -37,11 +37,15 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", run: "always", inline: <<-SHELL
     echo "[master]" > inventory.ini
     for i in $(seq 1 #{MASTER_COUNT}); do
-      vagrant ssh-config master$i | grep HostName | awk '{print "master"i " ansible_host="$2}' >> inventory.ini
+      NAME="master${i}"
+      HOST=$(vagrant ssh-config $NAME | grep HostName | awk '{print $2}')
+      echo "${NAME} ansible_host=${HOST}" >> inventory.ini
     done
     echo "[worker]" >> inventory.ini
     for i in $(seq 1 #{WORKER_COUNT}); do
-      vagrant ssh-config worker$i | grep HostName | awk '{print "worker"i " ansible_host="$2}' >> inventory.ini
+      NAME="worker${i}"
+      HOST=$(vagrant ssh-config $NAME | grep HostName | awk '{print $2}')
+      echo "${NAME} ansible_host=${HOST}" >> inventory.ini
     done
     echo "[all:vars]" >> inventory.ini
     echo "ansible_user=vagrant" >> inventory.ini
