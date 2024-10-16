@@ -52,6 +52,11 @@ jobs:
         run: |
           ansible-playbook -i inventory.ini playbooks/site.yml --ssh-common-args='-F ssh_config'
 
+      # Check the status of Docker nodes on the master node
+      - name: Verify Docker Swarm setup
+        run: |
+          vagrant ssh master1 -c "docker node ls"
+
       # Run tests
       - name: Run Docker Swarm tests
         run: |
