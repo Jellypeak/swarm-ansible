@@ -22,10 +22,10 @@ def provision(vm, role, node_num)
 end
 
 Vagrant.configure("2") do |config|
-  config.vm.provider "libvirt" do |v|
-    v.cpus = NODE_CPUS
-    v.memory = NODE_MEMORY
-  end
+  # config.vm.provider "libvirt" do |v|
+  #   v.cpus = NODE_CPUS
+  #   v.memory = NODE_MEMORY
+  # end
   config.vm.provider "virtualbox" do |v|
     v.cpus = NODE_CPUS
     v.memory = NODE_MEMORY
