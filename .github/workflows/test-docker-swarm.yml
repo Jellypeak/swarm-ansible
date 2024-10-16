@@ -47,11 +47,16 @@ jobs:
       - name: Check inventory.ini
         run: cat inventory.ini
 
-
       # Run Ansible playbook using dynamic SSH config and inventory
       - name: Run Ansible Playbook
         run: |
           ansible-playbook -i inventory.ini playbooks/site.yml --ssh-common-args='-F ssh_config'
+
+      # Run tests
+      - name: Run Docker Swarm tests
+        run: |
+          vagrant ssh master1 -c "docker service ls"
+          vagrant ssh master1 -c "docker node ls"
 
       # Tear down Vagrant environment after tests
       - name: Destroy Vagrant environment
