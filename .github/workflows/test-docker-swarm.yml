@@ -38,30 +38,20 @@ jobs:
         run: |
           vagrant up
 
-      # Generate dynamic SSH config and inventory file
-      - name: Generate SSH config for Vagrant
-        run: |
-          vagrant ssh-config > ssh_config
-
-      # Check inventory.ini
-      - name: Check inventory.ini
-        run: cat .vagrant/inventory.ini
-
-      # Run Ansible playbook using dynamic SSH config and inventory
-      - name: Run Ansible Playbook
-        run: |
-          ansible-playbook -i .vagrant/inventory.ini playbooks/site.yml --ssh-common-args='-F ssh_config'
-
       # Check the status of Docker nodes on the master node
       - name: Verify Docker Swarm setup
         run: |
           vagrant ssh master1 -c "docker node ls"
 
       # Run tests
-      - name: Run Docker Swarm tests
+      - name: Run Docker Swarm master tests
         run: |
           vagrant ssh master1 -c "docker service ls"
           vagrant ssh master1 -c "docker node ls"
+      
+      - name: Run Docker Swarm worker tests
+        run: |
+          vagrant ssh worker1 -c "docker --version"
 
       # Tear down Vagrant environment after tests
       - name: Destroy Vagrant environment

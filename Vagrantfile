@@ -1,54 +1,41 @@
+
+NODE_ROLES = [ "master1", "worker1" ]
+NODE_BOXES = [ "ubuntu/bionic64", "ubuntu/bionic64" ]
+NODE_CPUS = 1
+NODE_MEMORY = 1024
+NETWORK_PREFIX = "10.10.10"
+
+def provision(vm, role, node_num)
+  vm.box = NODE_BOXES[node_num]
+  vm.hostname = role
+
+  node_ip = "#{NETWORK_PREFIX}.#{100+node_num}"
+  vm.network "private_ip" ip: node_ip, netmask: "255.255.255.0"
+
+  vm.provision "ansible", run: 'once' do |ansible|
+    ansible.compatibility_mode = "2.0"
+    ansible.playbook = "playbooks/site.yml"
+    ansible.groups = {
+      "master" => NODE_ROLES.grep(/^master/),
+      "worker" => NODE_ROLES.grep(/^worker/),
+    }
+  end
+end
+
 Vagrant.configure("2") do |config|
-
-  # Define how many masters and workers you want
-  MASTER_COUNT = 1
-  WORKER_COUNT = 1
-
-  # VM settings
-  config.vm.box = "ubuntu/bionic64"
-
-  # Loop to create master nodes
-  MASTER_COUNT.times do |i|
-    config.vm.define "master#{i+1}" do |master|
-      master.vm.hostname = "master#{i+1}"
-      master.vm.network "private_network", type: "dhcp"
-      master.vm.provider "virtualbox" do |vb|
-        vb.memory = "1024"
-        vb.cpus = 1
-      end
-      master.vm.provision "shell", inline: "echo 'Setting up Docker Swarm master node #{i+1}'"
-    end
+  config.vm.provider "libvirt" do |v|
+    v.cpus = NODE_CPUS
+    v.memory = NODE_MEMORY
+  end
+  config.vm.provider "virtualbox" do |v|
+    v.cpus = NODE_CPUS
+    v.memory = NODE_MEMORY
+    v.linked_clone = true
   end
 
-  # Loop to create worker nodes
-  WORKER_COUNT.times do |i|
-    config.vm.define "worker#{i+1}" do |worker|
-      worker.vm.hostname = "worker#{i+1}"
-      worker.vm.network "private_network", type: "dhcp"
-      worker.vm.provider "virtualbox" do |vb|
-        vb.memory = "1024"
-        vb.cpus = 1
-      end
-      worker.vm.provision "shell", inline: "echo 'Setting up Docker Swarm worker node #{i+1}'"
+  NODE_ROLES.each_with_index do |name, i|
+    config.vm.define name do |node|
+      provision(node.vm, name, i)
     end
   end
-
-  # Task to generate dynamic inventory
-  config.vm.provision "shell", run: "always", inline: <<-SHELL
-    echo "[master]" > inventory.ini
-    for i in $(seq 1 #{MASTER_COUNT}); do
-      NAME="master${i}"
-      HOST=$(vagrant ssh-config $NAME | grep HostName | awk '{print $2}')
-      echo "${NAME} ansible_host=${HOST}" >> inventory.ini
-    done
-    echo "[worker]" >> inventory.ini
-    for i in $(seq 1 #{WORKER_COUNT}); do
-      NAME="worker${i}"
-      HOST=$(vagrant ssh-config $NAME | grep HostName | awk '{print $2}')
-      echo "${NAME} ansible_host=${HOST}" >> inventory.ini
-    done
-    echo "[all:vars]" >> inventory.ini
-    echo "ansible_user=vagrant" >> inventory.ini
-    echo "ansible_ssh_private_key_file=.vagrant/machines/master1/virtualbox/private_key" >> inventory.ini
-  SHELL
 end
