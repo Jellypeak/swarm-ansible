@@ -21,25 +21,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      # Install dependencies
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
-          sudo apt-get install -y vagrant ansible
-          sudo systemctl enable libvirtd
-          sudo systemctl start libvirtd
-          sudo usermod -aG libvirt $USER
-          sudo usermod -aG kvm $USER
+          sudo apt-get install -y vagrant virtualbox ansible
 
-      # Install Vagrant plugin for libvirt
-      - name: Install Vagrant plugins for libvirt
+      # Install Vagrant plugins for VirtualBox compatibility
+      - name: Install Vagrant plugins
         run: |
-          vagrant plugin install vagrant-libvirt
+          vagrant plugin install vagrant-vbguest
+          vagrant plugin install vagrant-disksize
 
-      # Start Vagrant environment with libvirt
+      # Start Vagrant environment
       - name: Start Vagrant environment
         run: |
-          vagrant up --provider=libvirt
+          vagrant up --provider=virtualbox
 
       # Check the status of Docker nodes on the master node
       - name: Verify Docker Swarm setup
