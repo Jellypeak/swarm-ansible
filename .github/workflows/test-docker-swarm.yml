@@ -43,6 +43,11 @@ jobs:
         run: |
           vagrant ssh-config > ssh_config
 
+      # Check inventory.ini
+      - name: Check inventory.ini
+        run: cat inventory.ini
+
+
       # Run Ansible playbook using dynamic SSH config and inventory
       - name: Run Ansible Playbook
         run: |
