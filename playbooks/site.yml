@@ -5,21 +5,70 @@
   become: true
 
   tasks:
-    - name: Ensure Docker is installed
+    - name: Update APT package index
       apt:
-        name: docker.io
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Install necessary packages for Docker setup
+      apt:
+        name:
+          - ca-certificates
+          - curl
         state: present
       when: ansible_os_family == "Debian"
-    
-    - name: Ensure Docker is started
+
+    - name: Create directory for Docker GPG keyring
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+      when: ansible_os_family == "Debian"
+
+    - name: Add Docker official GPG key
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+      when: ansible_os_family == "Debian"
+
+    - name: Add Docker APT repository
+      shell: |
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      when: ansible_os_family == "Debian"
+
+    - name: Update APT package index again after adding Docker repository
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install Docker CE and related packages
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure Docker service is started and enabled
       service:
         name: docker
         state: started
         enabled: yes
 
-- name: Initialize Docker Swarm on Master Nodes
-  hosts: master[0]  # This ensures only the first master initializes the swarm
-  gather_facts: yes
+    - name: Install Python Docker SDK
+      apt:
+        name: python3-docker
+        state: present
+      when: ansible_os_family == "Debian"
+
+- name: Initialize Docker Swarm on Master Node 0
+  hosts: master[0]
+  gather_facts: yes  # Ensuring we have the necessary facts
   become: true
   tasks:
     - name: Initialize Docker Swarm
@@ -28,33 +77,32 @@
         advertise_addr: "{{ ansible_host }}"
       register: swarm_init
 
-    - name: Set fact for join token (worker)
+    - name: Set fact for worker join token
       set_fact:
         worker_join_token: "{{ swarm_init.swarm_facts.JoinTokens.Worker }}"
 
-    - name: Set fact for join token (manager)
+    - name: Set fact for manager join token
       set_fact:
         manager_join_token: "{{ swarm_init.swarm_facts.JoinTokens.Manager }}"
 
-    - name: Debug worker join token
-      debug:
-        msg: "Worker join token is {{ worker_join_token }}"
-
-    - name: Debug manager join token
-      debug:
-        msg: "Manager join token is {{ manager_join_token }}"
+    - name: Share manager join token and master IP with all hosts
+      add_host:
+        name: "{{ item }}"
+        manager_join_token: "{{ manager_join_token }}"
+        master_node_ip: "{{ ansible_host }}"
+      loop: "{{ groups['master'] + groups['worker'] }}"
 
 - name: Add other master nodes to Docker Swarm as managers
-  hosts: master[1:]  # Only remaining masters will execute this task
+  hosts: master[1:]
   gather_facts: yes
   become: true
   tasks:
     - name: Join Docker Swarm as a manager
       community.docker.docker_swarm:
-        state: joined
-        join_token: "{{ hostvars['master[0]'].manager_join_token }}"
-        remote_addrs: 
-          - "{{ hostvars['master[0]'].ansible_host }}"
+        state: join
+        join_token: "{{ manager_join_token }}"
+        remote_addrs:
+          - "{{ master_node_ip }}"
 
 - name: Add worker nodes to Docker Swarm
   hosts: worker
@@ -63,7 +111,7 @@
   tasks:
     - name: Join Docker Swarm as a worker
       community.docker.docker_swarm:
-        state: joined
-        join_token: "{{ hostvars['master[0]'].worker_join_token }}"
-        remote_addrs: 
-          - "{{ hostvars['master[0]'].ansible_host }}"
+        state: join
+        join_token: "{{ worker_join_token }}"
+        remote_addrs:
+          - "{{ master_node_ip }}"
