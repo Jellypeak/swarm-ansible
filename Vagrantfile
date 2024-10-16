@@ -4,8 +4,8 @@
 Vagrant.configure("2") do |config|
   
   # Define how many masters and workers you want
-  MASTER_COUNT = 2
-  WORKER_COUNT = 3
+  MASTER_COUNT = 1
+  WORKER_COUNT = 1
   NETWORK_PREFIX = "192.168.56." # Updated to valid range
 
   # All VMs will be configured to use a private network
@@ -21,8 +21,8 @@ Vagrant.configure("2") do |config|
       master.vm.network "private_network", ip: "#{NETWORK_PREFIX}#{10 + i}"
 
       master.vm.provider "virtualbox" do |vb|
-        vb.memory = "1024"
-        vb.cpus = 2
+        vb.memory = "256"
+        vb.cpus = 1
       end
 
       master.vm.provision "shell", inline: <<-SHELL
@@ -38,8 +38,8 @@ Vagrant.configure("2") do |config|
       worker.vm.network "private_network", ip: "#{NETWORK_PREFIX}#{20 + i}"
 
       worker.vm.provider "virtualbox" do |vb|
-        vb.memory = "1024"
-        vb.cpus = 2
+        vb.memory = "256"
+        vb.cpus = 1
       end
 
       worker.vm.provision "shell", inline: <<-SHELL

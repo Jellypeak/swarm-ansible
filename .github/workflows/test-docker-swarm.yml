@@ -34,9 +34,11 @@ jobs:
           vagrant plugin install vagrant-disksize
 
       # Create inventory.yml from sample-inventory.yml
-      - name: Create inventory.conf from sample-inventory.conf
+      - name: Create inventory.conf from sample-inventory.conf and update SSH details
         run: |
           cp sample-inventory.conf inventory.conf
+          sed -i 's/^ansible_user:.*/ansible_user: vagrant/' inventory.conf
+          sed -i 's|^ansible_ssh_private_key_file:.*|ansible_ssh_private_key_file: .vagrant/machines/master1/virtualbox/private_key|' inventory.conf
 
       # Install Ansible Galaxy collections
       - name: Install Ansible collections
