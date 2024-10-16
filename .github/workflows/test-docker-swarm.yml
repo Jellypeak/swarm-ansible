@@ -33,6 +33,11 @@ jobs:
           vagrant plugin install vagrant-vbguest
           vagrant plugin install vagrant-disksize
 
+      # Create inventory.yml from sample-inventory.yml
+      - name: Create inventory.yml from sample-inventory.yml
+        run: |
+          cp sample-inventory.yml inventory.yml
+
       # Install Ansible Galaxy collections
       - name: Install Ansible collections
         run: |
@@ -47,11 +52,6 @@ jobs:
       - name: Verify Docker Swarm setup
         run: |
           vagrant ssh master1 -c "docker node ls"
-
-      # Run site.yml playbook to set up Docker Swarm cluster
-      - name: Run Ansible playbook (site.yml)
-        run: |
-          ansible-playbook -i sample-inventory.conf playbooks/site.yml
 
       # Run tests (optional step)
       - name: Run Docker Swarm tests

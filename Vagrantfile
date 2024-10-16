@@ -6,15 +6,14 @@ Vagrant.configure("2") do |config|
   # Define how many masters and workers you want
   MASTER_COUNT = 2
   WORKER_COUNT = 3
-  MASTER_IP_PREFIX = "192.168.50.1"
-  WORKER_IP_PREFIX = "192.168.50.2"
-  NETWORK_PREFIX = "192.168.50."
+  NETWORK_PREFIX = "192.168.56." # Updated to valid range
 
   # All VMs will be configured to use a private network
   config.vm.network "private_network", type: "dhcp"
 
   # Common settings for all VMs
   config.vm.box = "ubuntu/bionic64"
+
   # Loop to create master nodes
   MASTER_COUNT.times do |i|
     config.vm.define "master#{i+1}" do |master|
