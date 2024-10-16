@@ -43,14 +43,10 @@ jobs:
         run: |
           vagrant ssh-config > ssh_config
 
-      # Check inventory.ini
-      - name: Check inventory.ini
-        run: cat .vagrant/inventory.ini
-
       # Run Ansible playbook using dynamic SSH config and inventory
       - name: Run Ansible Playbook
         run: |
-          ansible-playbook -i .vagrant/inventory.ini playbooks/site.yml --ssh-common-args='-F ssh_config'
+          ansible-playbook playbooks/site.yml --ssh-common-args='-F ssh_config'
 
       # Check the status of Docker nodes on the master node
       - name: Verify Docker Swarm setup
