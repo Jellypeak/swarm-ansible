@@ -51,6 +51,8 @@
           - containerd.io
           - docker-buildx-plugin
           - docker-compose-plugin
+          - python3-docker
+          - python3-distutils
         state: present
       when: ansible_os_family == "Debian"
 
@@ -59,12 +61,6 @@
         name: docker
         state: started
         enabled: yes
-
-    - name: Install Python Docker SDK
-      apt:
-        name: python3-docker
-        state: present
-      when: ansible_os_family == "Debian"
 
 - name: Initialize Docker Swarm on Master Node 0
   hosts: master[0]
