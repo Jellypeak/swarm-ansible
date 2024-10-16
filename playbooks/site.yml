@@ -1,0 +1,69 @@
+---
+- name: Setup Docker Swarm cluster
+  hosts: all
+  gather_facts: yes
+  become: true
+
+  tasks:
+    - name: Ensure Docker is installed
+      apt:
+        name: docker.io
+        state: present
+      when: ansible_os_family == "Debian"
+    
+    - name: Ensure Docker is started
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+- name: Initialize Docker Swarm on Master Nodes
+  hosts: master[0]  # This ensures only the first master initializes the swarm
+  gather_facts: yes
+  become: true
+  tasks:
+    - name: Initialize Docker Swarm
+      community.docker.docker_swarm:
+        state: present
+        advertise_addr: "{{ ansible_host }}"
+      register: swarm_init
+
+    - name: Set fact for join token (worker)
+      set_fact:
+        worker_join_token: "{{ swarm_init.swarm_facts.JoinTokens.Worker }}"
+
+    - name: Set fact for join token (manager)
+      set_fact:
+        manager_join_token: "{{ swarm_init.swarm_facts.JoinTokens.Manager }}"
+
+    - name: Debug worker join token
+      debug:
+        msg: "Worker join token is {{ worker_join_token }}"
+
+    - name: Debug manager join token
+      debug:
+        msg: "Manager join token is {{ manager_join_token }}"
+
+- name: Add other master nodes to Docker Swarm as managers
+  hosts: master[1:]  # Only remaining masters will execute this task
+  gather_facts: yes
+  become: true
+  tasks:
+    - name: Join Docker Swarm as a manager
+      community.docker.docker_swarm:
+        state: joined
+        join_token: "{{ hostvars['master[0]'].manager_join_token }}"
+        remote_addrs: 
+          - "{{ hostvars['master[0]'].ansible_host }}"
+
+- name: Add worker nodes to Docker Swarm
+  hosts: worker
+  gather_facts: yes
+  become: true
+  tasks:
+    - name: Join Docker Swarm as a worker
+      community.docker.docker_swarm:
+        state: joined
+        join_token: "{{ hostvars['master[0]'].worker_join_token }}"
+        remote_addrs: 
+          - "{{ hostvars['master[0]'].ansible_host }}"

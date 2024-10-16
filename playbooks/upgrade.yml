@@ -1,0 +1,22 @@
+---
+- name: Upgrade Docker Swarm services
+  hosts: master
+  gather_facts: yes
+  become: true
+
+  tasks:
+    - name: Ensure Docker Swarm is initialized
+      community.docker.docker_swarm:
+        state: present
+
+    - name: Get list of services in the Docker Swarm
+      community.docker.docker_service_info:
+      register: docker_services
+
+    - name: Pull the latest image and update services
+      community.docker.docker_service:
+        name: "{{ item.Name }}"
+        image: "{{ item.Spec.TaskTemplate.ContainerSpec.Image }}"
+        state: present
+        force_update: true
+      loop: "{{ docker_services.services }}"

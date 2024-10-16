@@ -1,0 +1,66 @@
+name: Docker Swarm Solution CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  setup-and-test:
+    runs-on: ubuntu-latest
+
+    env:
+      ANSIBLE_HOST_KEY_CHECKING: false
+      ANSIBLE_STDOUT_CALLBACK: yaml
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Set up the required environment
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y vagrant virtualbox ansible
+          
+      # Install Vagrant plugins for VirtualBox compatibility
+      - name: Install Vagrant plugins
+        run: |
+          vagrant plugin install vagrant-vbguest
+          vagrant plugin install vagrant-disksize
+
+      # Install Ansible Galaxy collections
+      - name: Install Ansible collections
+        run: |
+          ansible-galaxy collection install -r collections/requirements.yml
+
+      # Start Vagrant environment
+      - name: Start Vagrant environment
+        run: |
+          vagrant up --provision
+
+      # Check the status of Docker nodes on the master node
+      - name: Verify Docker Swarm setup
+        run: |
+          vagrant ssh master1 -c "docker node ls"
+
+      # Run site.yml playbook to set up Docker Swarm cluster
+      - name: Run Ansible playbook (site.yml)
+        run: |
+          ansible-playbook -i sample-inventory.conf playbooks/site.yml
+
+      # Run tests (optional step)
+      - name: Run Docker Swarm tests
+        run: |
+          vagrant ssh master1 -c "docker service ls"
+          vagrant ssh master1 -c "docker node ls"
+          
+      # Tear down Vagrant environment after tests
+      - name: Destroy Vagrant environment
+        if: always()
+        run: |
+          vagrant destroy -f
