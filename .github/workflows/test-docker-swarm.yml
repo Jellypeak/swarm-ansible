@@ -36,7 +36,7 @@ jobs:
       # Start Vagrant environment
       - name: Start Vagrant environment
         run: |
-          vagrant up --provider=virtualbox
+          vagrant up --provider=virtualbox --provision
 
       # Check the status of Docker nodes on the master node
       - name: Verify Docker Swarm setup
