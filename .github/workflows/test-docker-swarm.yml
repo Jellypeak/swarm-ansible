@@ -34,9 +34,9 @@ jobs:
           vagrant plugin install vagrant-disksize
 
       # Create inventory.yml from sample-inventory.yml
-      - name: Create inventory.yml from sample-inventory.yml
+      - name: Create inventory.conf from sample-inventory.conf
         run: |
-          cp sample-inventory.yml inventory.yml
+          cp sample-inventory.conf inventory.conf
 
       # Install Ansible Galaxy collections
       - name: Install Ansible collections
