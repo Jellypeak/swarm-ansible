@@ -1,6 +1,6 @@
 
 NODE_ROLES = [ "master1", "worker1" ]
-NODE_BOXES = [ "ubuntu/bionic64", "ubuntu/bionic64" ]
+NODE_BOXES = [ "generic/ubuntu2004", "generic/ubuntu2004" ]
 NODE_CPUS = 1
 NODE_MEMORY = 1024
 NETWORK_PREFIX = "10.10.10"
