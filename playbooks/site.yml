@@ -28,19 +28,20 @@
 
     - name: Add Docker official GPG key
       get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
+        url: "{{ 'https://download.docker.com/linux/ubuntu/gpg' if ansible_distribution == 'Ubuntu' else 'https://download.docker.com/linux/debian/gpg' }}"
         dest: /etc/apt/keyrings/docker.asc
         mode: '0644'
       when: ansible_os_family == "Debian"
 
+    - name: Determine the distribution codename
+      ansible.builtin.shell: ". /etc/os-release && echo $VERSION_CODENAME"
+      register: distro_codename
+      when: ansible_os_family == "Debian"
+      become: true
+
     - name: Add Docker APT repository
       shell: |
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-      when: ansible_os_family == "Debian"
-
-    - name: Update APT package index again after adding Docker repository
-      apt:
-        update_cache: yes
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/{{ 'ubuntu' if ansible_distribution == 'Ubuntu' else 'debian' }} {{ distro_codename.stdout }} stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
       when: ansible_os_family == "Debian"
 
     - name: Install Docker CE and related packages
@@ -53,6 +54,7 @@
           - docker-compose-plugin
           - python3-docker
         state: present
+        update_cache: true
       when: ansible_os_family == "Debian"
 
     - name: Ensure Docker service is started and enabled
@@ -63,13 +65,11 @@
 
 - name: Initialize Docker Swarm on Master Node 0
   hosts: master[0]
-  gather_facts: yes  # Ensuring we have the necessary facts
   become: true
   tasks:
     - name: Initialize Docker Swarm
       community.docker.docker_swarm:
         state: present
-        advertise_addr: "{{ ansible_host }}"
       register: swarm_init
 
     - name: Set fact for worker join token
@@ -110,3 +110,13 @@
         join_token: "{{ worker_join_token }}"
         remote_addrs:
           - "{{ master_node_ip }}"
+
+- name: Add user to docker group
+  hosts: all
+  become: true
+  tasks:
+    - name: Ensure user is added to docker group
+      user:
+        name: "{{ ansible_user_id }}"  # Использует текущего пользователя Ansible
+        groups: docker
+        append: yes
